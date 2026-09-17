@@ -11,11 +11,10 @@ describe('App', () => {
     vi.unstubAllGlobals()
   })
 
-  it('posts the entered body to the same-origin echo endpoint and renders JSON', async () => {
+  it('posts the entered text to the same-origin echo endpoint and displays the reply', async () => {
     fetch.mockResolvedValue({
       ok: true,
-      headers: new Headers({ 'content-type': 'application/json' }),
-      json: vi.fn().mockResolvedValue({ echoed: 'hello' }),
+      text: vi.fn().mockResolvedValue('Hello: hello'),
     })
     render(<App />)
 
@@ -23,7 +22,7 @@ describe('App', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Send' }))
 
     expect(screen.getByRole('status')).toHaveTextContent('Sending request')
-    await waitFor(() => expect(screen.getByText(/"echoed": "hello"/)).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText('Hello: hello')).toBeInTheDocument())
     expect(fetch).toHaveBeenCalledWith('/api/echo', {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain; charset=utf-8' },
@@ -40,8 +39,15 @@ describe('App', () => {
     })
     render(<App />)
 
+    fireEvent.change(screen.getByLabelText(/request body/i), { target: { value: 'hello' } })
     fireEvent.click(screen.getByRole('button', { name: 'Send' }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Body is invalid')
+  })
+
+  it('keeps submission disabled until text is entered', () => {
+    render(<App />)
+
+    expect(screen.getByRole('button', { name: 'Send' })).toBeDisabled()
   })
 })

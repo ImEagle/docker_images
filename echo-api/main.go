@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"io"
 	"log"
 	"net/http"
@@ -10,17 +9,10 @@ import (
 
 const defaultPort = "8080"
 
-type echoResponse struct {
-	Method  string      `json:"method"`
-	Path    string      `json:"path"`
-	Headers http.Header `json:"headers"`
-	Body    string      `json:"body"`
-}
-
 func newHandler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", health)
-	mux.HandleFunc("/api/echo", echo)
+	mux.HandleFunc("POST /api/echo", echo)
 	return mux
 }
 
@@ -35,13 +27,8 @@ func echo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(echoResponse{
-		Method:  r.Method,
-		Path:    r.URL.Path,
-		Headers: r.Header,
-		Body:    string(body),
-	}); err != nil {
+	w.Header().Set("Content-Type", "text/plain")
+	if _, err := w.Write([]byte("Hello: " + string(body))); err != nil {
 		log.Printf("write echo response: %v", err)
 	}
 }

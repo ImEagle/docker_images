@@ -1,10 +1,5 @@
 import { useState } from 'react'
 
-function readableResponse(response) {
-  if (response === null) return ''
-  return JSON.stringify(response, null, 2)
-}
-
 export default function App() {
   const [body, setBody] = useState('')
   const [status, setStatus] = useState('idle')
@@ -13,6 +8,13 @@ export default function App() {
 
   async function sendEcho(event) {
     event.preventDefault()
+    if (!body.trim()) {
+      setResponse('')
+      setError('Enter some text before sending.')
+      setStatus('error')
+      return
+    }
+
     setStatus('loading')
     setResponse(null)
     setError('')
@@ -23,10 +25,7 @@ export default function App() {
         headers: { 'Content-Type': 'text/plain; charset=utf-8' },
         body,
       })
-      const contentType = result.headers.get('content-type') ?? ''
-      const payload = contentType.includes('application/json')
-        ? await result.json()
-        : await result.text()
+      const payload = await result.text()
 
       if (!result.ok) {
         throw new Error(
@@ -60,7 +59,7 @@ export default function App() {
             rows="7"
             disabled={status === 'loading'}
           />
-          <button type="submit" disabled={status === 'loading'}>
+          <button type="submit" disabled={status === 'loading' || !body.trim()}>
             {status === 'loading' ? 'Sending…' : 'Send'}
           </button>
         </form>
@@ -68,9 +67,9 @@ export default function App() {
         {status === 'loading' && <p role="status">Sending request…</p>}
         {status === 'error' && <p className="error" role="alert">{error}</p>}
         {status === 'success' && (
-          <section aria-labelledby="response-title">
+          <section className="reply" aria-labelledby="response-title">
             <h2 id="response-title">Response</h2>
-            <pre>{readableResponse(response)}</pre>
+            <output aria-live="polite">{response}</output>
           </section>
         )}
       </section>
