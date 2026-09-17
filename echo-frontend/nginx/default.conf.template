@@ -1,0 +1,27 @@
+server {
+    listen 8080;
+    listen [::]:8080;
+    server_name _;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    location = /healthz {
+        access_log off;
+        try_files /healthz =404;
+    }
+
+    # The deployer supplies API_UPSTREAM (for example http://echo-api.namespace.svc.cluster.local:8080).
+    # Keeping this proxy here makes browser requests same-origin and avoids a browser CORS dependency.
+    location /api/ {
+        proxy_pass ${API_UPSTREAM};
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}

@@ -1,0 +1,47 @@
+name: Publish Echo images
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: echo-api
+            context: echo-api
+            build_args: |
+              GO_BUILDER_IMAGE=golang:1.26.4-alpine@sha256:3ad57304ad93bbec8548a0437ad9e06a455660655d9af011d58b993f6f615648
+          - image: echo-frontend
+            context: echo-frontend
+            build_args: ''
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and publish ${{ matrix.image }}
+        id: build
+        uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
+        with:
+          context: ${{ matrix.context }}
+          platforms: linux/amd64
+          push: true
+          build-args: ${{ matrix.build_args }}
+          tags: ghcr.io/imeagle/${{ matrix.image }}:${{ github.ref_name }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/ImEagle/docker_images
